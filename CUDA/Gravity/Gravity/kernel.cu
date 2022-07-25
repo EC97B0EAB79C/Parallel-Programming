@@ -5,7 +5,8 @@ CUDA code for calculating using only CUDA thread
 #include "device_launch_parameters.h"
 
 #include <stdio.h>
-#include<math.h>
+#include <stdlib.h>
+#include <math.h>
 
 #define N 1000
 #define G 10
@@ -15,9 +16,21 @@ __global__ void kernelGravity(double*, double*, double*, double*);
 
 int main()
 {
-	cudaSetDevice(0);
-
 	size_t size;
+
+	// host variable
+	size = sizeof(double) * N;
+	double* m = (double*)malloc(size);
+	size = sizeof(double) * N * N * 3;
+	double* a = (double*)malloc(size);
+	size = sizeof(double) * N * 3;
+	double* v = (double*)malloc(size);
+	double* pos = (double*)malloc(size);
+
+	//TODO set variable
+
+	// device(CUDA) variable
+	cudaSetDevice(0);
 
 	double* d_m;
 	size = sizeof(double) * N;
@@ -34,9 +47,34 @@ int main()
 	double* d_pos;
 	cudaMalloc(&d_pos, size);
 
-	//TODO	cudaMemcpy
+	// cudaMemcpy
+	size = sizeof(double) * N;
+	cudaMemcpy(d_m, m, size, cudaMemcpyHostToDevice);
+	size = sizeof(double) * N * N * 3;
+	cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
+	size = sizeof(double) * N * 3;
+	cudaMemcpy(d_v, v, size, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_pos, pos, size, cudaMemcpyHostToDevice);
 
+	// launch kernel
 	kernelGravity << <1, N >> > (d_m, d_a, d_v, d_pos);
+
+	// sync device
+	cudaDeviceSynchronize();
+
+	// cudaMemcpy result from device
+	cudaMemcpy(pos, d_pos, size, cudaMemcpyDeviceToHost);
+
+	// free memory
+	cudaFree(d_m);
+	cudaFree(d_a);
+	cudaFree(d_v);
+	cudaFree(d_pos);
+
+	free(m);
+	free(a);
+	free(v);
+	free(pos);
 
 	cudaDeviceReset();
 

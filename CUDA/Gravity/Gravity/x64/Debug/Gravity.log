@@ -2,5 +2,4 @@
   
   D:\GitHub\Parallel-Programming\CUDA\Gravity\Gravity>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\bin\nvcc.exe" -gencode=arch=compute_52,code=\"sm_52,compute_52\" --use-local-env -ccbin "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.32.31326\bin\HostX64\x64" -x cu   -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\include"  -G   --keep-dir x64\Debug  -maxrregcount=0  --machine 64 --compile -cudart static  -g  -DWIN32 -DWIN64 -D_DEBUG -D_CONSOLE -D_MBCS -Xcompiler "/EHsc /W3 /nologo /Od /Fdx64\Debug\vc143.pdb /FS /Zi /RTC1 /MDd " -o D:\GitHub\Parallel-Programming\CUDA\Gravity\Gravity\x64\Debug\kernel.cu.obj "D:\GitHub\Parallel-Programming\CUDA\Gravity\Gravity\kernel.cu" 
   kernel.cu
-     Creating library D:\GitHub\Parallel-Programming\CUDA\Gravity\x64\Debug\01Thread.lib and object D:\GitHub\Parallel-Programming\CUDA\Gravity\x64\Debug\01Thread.exp
   Gravity.vcxproj -> D:\GitHub\Parallel-Programming\CUDA\Gravity\x64\Debug\01Thread.exe
