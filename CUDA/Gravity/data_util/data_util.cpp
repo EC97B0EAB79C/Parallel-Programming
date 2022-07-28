@@ -1,6 +1,8 @@
 #include<stdio.h>
 #include<stdlib.h>
 
+#include "data_util.h"
+
 // Read from binary double file
 long readDouble(char* fileName, double* data) {
 
@@ -23,10 +25,10 @@ long readDouble(char* fileName, double* data) {
 		readSize += fread(
 			data + readSize,
 			1,
-			fileSize-readSize,
+			fileSize - readSize,
 			file);
 		if (ferror(file) || feof(file)) {
-			printf("Err: Failed to read File(%s)\n", fileName);
+			fprintf(stderr, "Err: Failed to read File(%s)\n", fileName);
 			return -1;
 		}
 	}
@@ -51,7 +53,7 @@ long writeDouble(char* fileName, double* data, long size) {
 	while (writeSize < fileSize) {
 		writeSize += fwrite(data + writeSize, 1, fileSize - writeSize, file);
 		if (ferror(file)) {
-			printf("Err: Failed to write File(%s)\n", fileName);
+			fprintf(stderr, "Err: Failed to write File(%s)\n", fileName);
 			return -1;
 		}
 	}

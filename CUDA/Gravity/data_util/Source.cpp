@@ -10,7 +10,7 @@ int main(int argc, char* argv[]) {
 
 	int n = 1000;
 
-	if (argc<1) {
+	if (argc<2) {
 		fprintf(stderr, "Usage:\n\t%s [filename]\n",argv[0]);
 		return -1;
 	}
@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	char writeFile[] = "D:/GitHub/Parallel-Programming/CUDA/Gravity/data_util/test/n1000/test.double";
+	char writeFile[] = "./test.double";
 	if (writeDouble(
 		writeFile,
 		temp,
