@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 
-#include "data_util.h"
+#include "./data_util.h"
 
 // Read from binary double file
 long readDouble(char* fileName, double* data) {
@@ -29,9 +29,12 @@ long readDouble(char* fileName, double* data) {
 			file);
 		if (ferror(file) || feof(file)) {
 			fprintf(stderr, "Err: Failed to read File(%s)\n", fileName);
+			fclose(file);
 			return -1;
 		}
 	}
+
+	fclose(file);
 	return fileSize / sizeof(double);
 }
 

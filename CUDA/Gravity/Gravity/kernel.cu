@@ -7,6 +7,9 @@ CUDA code for calculating using only CUDA thread
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
+
+#include "../data_util/data_util.h"
 
 #define N 1000
 #define G 10
@@ -27,7 +30,41 @@ int main()
 	double* v = (double*)malloc(size);
 	double* pos = (double*)malloc(size);
 
-	//TODO set variable
+	// check variable
+	if (
+		m == NULL ||
+		a == NULL ||
+		v == NULL ||
+		pos == NULL
+		) {
+		fprintf(stderr, "Err: Malloc Failed");
+		return -1;
+	}
+
+	// set variable
+	if (readDouble("../data_util/test/n1000/m.double", m) != 1000) {
+		fprintf(stderr, "Err: Can not read m.double");
+		return -1;
+	}
+
+	size = sizeof(double) * N * N * 3;
+	memset(a, 0, size);
+
+	size = sizeof(double) * N * 3;
+	memset(v, 0, size);
+
+	if (readDouble("../data_util/test/n1000/x.double", pos) != 1000) {
+		fprintf(stderr, "Err: Can not read x.double");
+		return -1;
+	}
+	if (readDouble("../data_util/test/n1000/y.double", pos + 1000) != 1000) {
+		fprintf(stderr, "Err: Can not read y.double");
+		return -1;
+	}
+	if (readDouble("../data_util/test/n1000/z.double", pos + 2000) != 1000) {
+		fprintf(stderr, "Err: Can not read z.double");
+		return -1;
+	}
 
 	// device(CUDA) variable
 	cudaSetDevice(0);

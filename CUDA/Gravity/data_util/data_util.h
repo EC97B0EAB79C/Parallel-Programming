@@ -1,4 +1,5 @@
 #pragma once	
+
 // Read from binary double file 
 long readDouble(char* fileName, double* data);
 
