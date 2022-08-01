@@ -12,8 +12,8 @@ CUDA code for calculating using only CUDA thread
 #include "../data_util/data_util.h"
 
 #define N 1000
-#define G 10
-#define DT .1
+#define G 1
+#define DT 1
 
 __global__ void kernelGravity(double*, double*, double*, double*);
 
@@ -94,7 +94,9 @@ int main()
 	cudaMemcpy(d_pos, pos, size, cudaMemcpyHostToDevice);
 
 	// launch kernel
-	kernelGravity << <1, N >> > (d_m, d_a, d_v, d_pos);
+	for (int i = 0; i < 10; i++) {
+		kernelGravity << <1, N >> > (d_m, d_a, d_v, d_pos);
+	}
 
 	// sync device
 	cudaDeviceSynchronize();
@@ -106,9 +108,9 @@ int main()
 	char writeFileX[] = "./cuda_x.double";
 	writeDouble(writeFileX, pos, N);
 	char writeFileY[] = "./cuda_y.double";
-	writeDouble(writeFileY, pos, N);
+	writeDouble(writeFileY, pos + 1000, N);
 	char writeFileZ[] = "./cuda_z.double";
-	writeDouble(writeFileZ, pos, N);
+	writeDouble(writeFileZ, pos + 2000, N);
 
 	// free memory
 	cudaFree(d_m);
@@ -129,17 +131,19 @@ int main()
 __global__ void kernelGravity(double* m, double* a, double* v, double* pos) {
 	int i = threadIdx.x;
 	double r_sqr;
+	double r;
 	for (int j = 0; j < N; j++) {
-		r_sqr = (pos[i] - pos[j]) * (pos[i] - pos[j])
+		r_sqr 
+			= (pos[i] - pos[j]) * (pos[i] - pos[j])
 			+ (pos[i + N] - pos[j + N]) * (pos[i + N] - pos[j + N])
 			+ (pos[i + N * 2] - pos[j + N * 2]) * (pos[i + N * 2] - pos[j + N * 2]);
-
-		a[i * N + j] = G * (m[j]) / (r_sqr)
-			* (pos[i] - pos[j]) / (sqrt(r_sqr));
-		a[i * N + j + N * N] = G * (m[j]) / (r_sqr)
-			* (pos[i + N] - pos[j + N]) / (sqrt(r_sqr));
-		a[i * N + j + N * N * 2] = G * (m[j]) / (r_sqr)
-			* (pos[i + N * 2] - pos[j + N * 2]) / (sqrt(r_sqr));
+		r = sqrt(r_sqr);
+		a[i * N + j]
+			= G * (m[j]) / (r_sqr) * (pos[j] - pos[i]) / r;
+		a[i * N + j + N * N]
+			= G * (m[j]) / (r_sqr) * (pos[j + N] - pos[i + N]) / r;
+		a[i * N + j + N * N * 2]
+			= G * (m[j]) / (r_sqr) * (pos[j + N * 2] - pos[i + N * 2]) / r;
 	}
 
 	for (int j = 0; j < N; j++) {
