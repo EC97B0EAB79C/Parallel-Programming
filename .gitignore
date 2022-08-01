@@ -1,6 +1,7 @@
 # Test Files
 CUDA/Gravity/data_util/test*
 data_util_bin.c
+*.double
 
 # Prerequisites
 *.d

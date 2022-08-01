@@ -102,6 +102,14 @@ int main()
 	// cudaMemcpy result from device
 	cudaMemcpy(pos, d_pos, size, cudaMemcpyDeviceToHost);
 
+	// write results
+	char writeFileX[] = "./cuda_x.double";
+	writeDouble(writeFileX, pos, N);
+	char writeFileY[] = "./cuda_y.double";
+	writeDouble(writeFileY, pos, N);
+	char writeFileZ[] = "./cuda_z.double";
+	writeDouble(writeFileZ, pos, N);
+
 	// free memory
 	cudaFree(d_m);
 	cudaFree(d_a);
