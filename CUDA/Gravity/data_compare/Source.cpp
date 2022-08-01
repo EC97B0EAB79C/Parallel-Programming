@@ -9,16 +9,21 @@ Source file to test "data_compare"
 int main(int argc, char* argv[]) {
 
 	if (argc < 3) {
-		fprintf(stderr, "Usage:\n\t%s [file1] [file2]",argv[0]);
+		fprintf(stderr, "Usage:\n\t%s [file1] [file2]", argv[0]);
 		return -1;
 	}
 
-	double result;
-	if ((result = compareDouble(argv[1], argv[2]))<0) {
+	long result;
+	if ((result = compareDouble(argv[1], argv[2])) < 0) {
 		fprintf(stderr, "Err: Failed to compare two file (%s) and (%s)\n", argv[1], argv[2]);
-		return - 1;
+		return -1;
 	}
 
-	fprintf(stdout, "total error:\t%lf", result);
+	if (result == 0) {
+		fprintf(stdout, "Every data's error is in less than %1.20lf.\n", 1e-10);
+	}
+	else {
+		fprintf(stdout, "There are %1d diffrent datas", result);
+	}
 
 }

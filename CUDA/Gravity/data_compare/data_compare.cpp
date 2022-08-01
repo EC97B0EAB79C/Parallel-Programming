@@ -4,7 +4,7 @@
 
 #include "data_compare.h"
 
-double compareDouble(char* fileName1, char* fileName2)
+long compareDouble(char* fileName1, char* fileName2)
 {
 	// File1
 	FILE* file1;
@@ -45,8 +45,8 @@ double compareDouble(char* fileName1, char* fileName2)
 	// Read data can compare
 	long numElements = fileSize1 / sizeof(double);
 	double difference;
-	double totalError = 0;
 	double buff1, buff2;
+	long errorCount = 0;
 	for (long i = 0; i < numElements; i++) {
 		// read a double from File1
 		fread(&buff1, sizeof(double), 1, file1);
@@ -61,14 +61,12 @@ double compareDouble(char* fileName1, char* fileName2)
 			fprintf(stderr, "Err: Failed to read File(%s)\n", fileName2);
 			return -1;
 		}
-		
+
 		// compare two double
-		if ((difference = abs(buff1 - buff2)) > 1e-10) {
-			fprintf(stdout, "%ld has different result\n\tdifference: %lf\n", i, difference);
+		if ((difference = (buff1 - buff2) / buff1) > 1e-10 || (difference = (buff2 - buff1) / buff2) > 1e-10) {
+			fprintf(stdout, "%ld has different result [%.20lf] [%.20lf]\n\tdifference: %.20lf\n", i, buff1, buff2, difference);
+			errorCount++;
 		}
-
-		totalError += abs(buff1 - buff2);
 	}
-
-	return totalError;
+	return errorCount;
 }
