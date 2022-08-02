@@ -42,7 +42,7 @@ int main()
 	}
 
 	// set variable
-	if (readDouble("../data_util/test/n1000/m.double", m) != 1000) {
+	if (readDouble("../data_util/test/n1000/m.double", m) != N) {
 		fprintf(stderr, "Err: Can not read m.double");
 		return -1;
 	}
@@ -53,15 +53,15 @@ int main()
 	size = sizeof(double) * N * 3;
 	memset(v, 0, size);
 
-	if (readDouble("../data_util/test/n1000/x.double", pos) != 1000) {
+	if (readDouble("../data_util/test/n1000/x.double", pos) != N) {
 		fprintf(stderr, "Err: Can not read x.double");
 		return -1;
 	}
-	if (readDouble("../data_util/test/n1000/y.double", pos + 1000) != 1000) {
+	if (readDouble("../data_util/test/n1000/y.double", pos + N) != N) {
 		fprintf(stderr, "Err: Can not read y.double");
 		return -1;
 	}
-	if (readDouble("../data_util/test/n1000/z.double", pos + 2000) != 1000) {
+	if (readDouble("../data_util/test/n1000/z.double", pos + N * 2) != N) {
 		fprintf(stderr, "Err: Can not read z.double");
 		return -1;
 	}
@@ -89,7 +89,7 @@ int main()
 	cudaEventCreate(&start);
 	cudaEventCreate(&memcpy);
 	cudaEventCreate(&end);
-	cudaEventRecord(start);
+	cudaEventRecord(start);	// record event
 
 	// cudaMemcpy
 	size = sizeof(double) * N;
@@ -99,19 +99,16 @@ int main()
 	size = sizeof(double) * N * 3;
 	cudaMemcpy(d_v, v, size, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_pos, pos, size, cudaMemcpyHostToDevice);
-	cudaEventRecord(memcpy);
+	cudaEventRecord(memcpy);	// record event
 
 	// launch kernel
 	for (int i = 0; i < 10; i++) {
 		kernelGravity << <1, N >> > (d_m, d_a, d_v, d_pos);
 	}
 
-	// sync device
-	cudaDeviceSynchronize();
-
 	// cudaMemcpy result from device
 	cudaMemcpy(pos, d_pos, size, cudaMemcpyDeviceToHost);
-	cudaEventRecord(end);
+	cudaEventRecord(end);	// record event
 	cudaDeviceSynchronize();
 
 	// print performace metrics
@@ -126,9 +123,9 @@ int main()
 	char writeFileX[] = "./cuda_x.double";
 	writeDouble(writeFileX, pos, N);
 	char writeFileY[] = "./cuda_y.double";
-	writeDouble(writeFileY, pos + 1000, N);
+	writeDouble(writeFileY, pos + N, N);
 	char writeFileZ[] = "./cuda_z.double";
-	writeDouble(writeFileZ, pos + 2000, N);
+	writeDouble(writeFileZ, pos + N*2, N);
 
 	// free memory
 	cudaFree(d_m);
