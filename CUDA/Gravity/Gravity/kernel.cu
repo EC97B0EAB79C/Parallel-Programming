@@ -84,6 +84,13 @@ int main()
 	double* d_pos;
 	cudaMalloc(&d_pos, size);
 
+	// performance metric
+	cudaEvent_t start, memcpy, end;
+	cudaEventCreate(&start);
+	cudaEventCreate(&memcpy);
+	cudaEventCreate(&end);
+	cudaEventRecord(start);
+
 	// cudaMemcpy
 	size = sizeof(double) * N;
 	cudaMemcpy(d_m, m, size, cudaMemcpyHostToDevice);
@@ -92,6 +99,7 @@ int main()
 	size = sizeof(double) * N * 3;
 	cudaMemcpy(d_v, v, size, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_pos, pos, size, cudaMemcpyHostToDevice);
+	cudaEventRecord(memcpy);
 
 	// launch kernel
 	for (int i = 0; i < 10; i++) {
@@ -103,6 +111,16 @@ int main()
 
 	// cudaMemcpy result from device
 	cudaMemcpy(pos, d_pos, size, cudaMemcpyDeviceToHost);
+	cudaEventRecord(end);
+	cudaDeviceSynchronize();
+
+	// print performace metrics
+	float milisecondsStoM = 0;
+	cudaEventElapsedTime(&milisecondsStoM, start, memcpy);
+	fprintf(stdout, "Time from start to memcpy:\n\t%f\n", milisecondsStoM);
+	float milisecondsStoE = 0;
+	cudaEventElapsedTime(&milisecondsStoE, start, end);
+	fprintf(stdout, "Time from start to end:\n\t%f\n", milisecondsStoE);
 
 	// write results
 	char writeFileX[] = "./cuda_x.double";
@@ -133,7 +151,7 @@ __global__ void kernelGravity(double* m, double* a, double* v, double* pos) {
 	double r_sqr;
 	double r;
 	for (int j = 0; j < N; j++) {
-		r_sqr 
+		r_sqr
 			= (pos[i] - pos[j]) * (pos[i] - pos[j])
 			+ (pos[i + N] - pos[j + N]) * (pos[i + N] - pos[j + N])
 			+ (pos[i + N * 2] - pos[j + N * 2]) * (pos[i + N * 2] - pos[j + N * 2]);
