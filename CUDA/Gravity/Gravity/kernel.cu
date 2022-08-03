@@ -125,7 +125,7 @@ int main()
 	char writeFileY[] = "./cuda_y.double";
 	writeDouble(writeFileY, pos + N, N);
 	char writeFileZ[] = "./cuda_z.double";
-	writeDouble(writeFileZ, pos + N*2, N);
+	writeDouble(writeFileZ, pos + N * 2, N);
 
 	// free memory
 	cudaFree(d_m);
