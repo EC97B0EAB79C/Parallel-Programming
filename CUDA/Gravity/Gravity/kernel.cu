@@ -15,7 +15,7 @@ CUDA code for calculating using only CUDA thread
 #define G 1
 #define DT 1
 
-__global__ void kernelGravity(double*, double*, double*, double*);
+__global__ void kernelGravity(double*, double*, double*, double*, double*);
 
 int main()
 {
@@ -84,6 +84,9 @@ int main()
 	double* d_pos;
 	cudaMalloc(&d_pos, size);
 
+	double* d_result;
+	cudaMalloc(&d_result, size);
+
 	// performance metric
 	cudaEvent_t start, memcpy, end;
 	cudaEventCreate(&start);
@@ -103,7 +106,10 @@ int main()
 
 	// launch kernel
 	for (int i = 0; i < 10; i++) {
-		kernelGravity << <1, N >> > (d_m, d_a, d_v, d_pos);
+		kernelGravity << <1, N >> > (d_m, d_a, d_v, d_pos, d_result);
+		//cudaDeviceSynchronize();
+		cudaMemcpy(d_pos, d_result, size, cudaMemcpyDeviceToDevice);
+		//cudaDeviceSynchronize();
 	}
 
 	// cudaMemcpy result from device
@@ -132,6 +138,7 @@ int main()
 	cudaFree(d_a);
 	cudaFree(d_v);
 	cudaFree(d_pos);
+	cudaFree(d_result);
 
 	free(m);
 	free(a);
@@ -143,7 +150,7 @@ int main()
 	return 0;
 }
 
-__global__ void kernelGravity(double* m, double* a, double* v, double* pos) {
+__global__ void kernelGravity(double* m, double* a, double* v, double* pos, double* result) {
 	int i = threadIdx.x;
 	double r_sqr;
 	double r;
@@ -169,10 +176,8 @@ __global__ void kernelGravity(double* m, double* a, double* v, double* pos) {
 		}
 	}
 
-	__syncthreads();
-
-	pos[i] += DT * v[i];
-	pos[i + N] += DT * v[i + N];
-	pos[i + N * 2] += DT * v[i + N * 2];
+	result[i] = pos[i] + DT * v[i];
+	result[i + N] = pos[i + N] + DT * v[i + N];
+	result[i + N * 2] = pos[i + N * 2] + DT * v[i + N * 2];
 
 }

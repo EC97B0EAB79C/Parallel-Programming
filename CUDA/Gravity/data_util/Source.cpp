@@ -8,7 +8,7 @@ Source file to test "data_util"
 
 int main(int argc, char* argv[]) {
 
-	int n = 10000;
+	int n = 1000;
 
 	if (argc<2) {
 		fprintf(stderr, "Usage:\n\t%s [filename]\n",argv[0]);

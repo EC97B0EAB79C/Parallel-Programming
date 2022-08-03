@@ -4,6 +4,10 @@
 
 #include "data_compare.h"
 
+bool isNaN(double a) {
+	return a != a;
+}
+
 long compareDouble(char* fileName1, char* fileName2)
 {
 	// File1
@@ -59,6 +63,11 @@ long compareDouble(char* fileName1, char* fileName2)
 		fread(&buff2, sizeof(double), 1, file2);
 		if (ferror(file2) || feof(file2)) {
 			fprintf(stderr, "Err: Failed to read File(%s)\n", fileName2);
+			return -1;
+		}
+
+		if (isNaN(buff1) || isNaN(buff2)) {
+			fprintf(stderr, "Err: NaN value\n");
 			return -1;
 		}
 

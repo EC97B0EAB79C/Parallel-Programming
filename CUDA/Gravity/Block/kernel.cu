@@ -17,7 +17,7 @@ TODO:
 #define G 1
 #define DT 1
 
-__global__ void kernelGravity(double*, double*, double*, double*);
+__global__ void kernelGravity(double*, double*, double*, double*, double*);
 
 cudaError runKernel(double* m, double* a, double* v, double* pos) {
 	cudaError_t cudaStatus;
@@ -62,6 +62,14 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 		goto Error;
 	}
 
+	double* d_result;
+	cudaStatus = cudaMalloc(&d_result, size);
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "Err: cudaMalloc\n");
+		goto Error;
+	}
+
+
 	// performance metric
 	cudaEvent_t start, memcpy, end;
 	cudaEventCreate(&start);
@@ -100,19 +108,28 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 	// record event
 	cudaEventRecord(memcpy);
 
+
 	// launch kernel
 	dim3 blockIdx(256);
 	dim3 gridIdx((N + (blockIdx.x - 1)) / blockIdx.x);
 	for (int i = 0; i < 10; i++) {
-		kernelGravity << <gridIdx, blockIdx >> > (d_m, d_a, d_v, d_pos);
+		kernelGravity << <gridIdx, blockIdx >> > (d_m, d_a, d_v, d_pos, d_result);
 		cudaStatus = cudaDeviceSynchronize();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "Err: %dth iter Kernel\n", i);
+			goto Error;
+		}
+
+		cudaStatus = cudaMemcpy(d_pos, d_result, size, cudaMemcpyDeviceToDevice);
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "Err: %dth iter Kernel\n", i);
 			goto Error;
 		}
 	}
 
+
 	// cudaMemcpy result from device
+	cudaDeviceSynchronize();
 	cudaStatus = cudaMemcpy(pos, d_pos, size, cudaMemcpyDeviceToHost);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "Err: cudaMemcpy\n");
@@ -135,6 +152,7 @@ Error:
 	cudaFree(d_a);
 	cudaFree(d_v);
 	cudaFree(d_pos);
+	cudaFree(d_result);
 
 	cudaDeviceReset();
 
@@ -146,6 +164,7 @@ int main()
 {
 	size_t size;
 
+
 	// host variable
 	size = sizeof(double) * N;
 	double* m = (double*)malloc(size);
@@ -154,6 +173,7 @@ int main()
 	size = sizeof(double) * N * 3;
 	double* v = (double*)malloc(size);
 	double* pos = (double*)malloc(size);
+
 
 	// check variable
 	if (
@@ -165,6 +185,7 @@ int main()
 		fprintf(stderr, "Err: Malloc Failed");
 		return -1;
 	}
+
 
 	// set variable
 	if (readDouble("../data_util/test/n10000/m.double", m) != N) {
@@ -191,6 +212,7 @@ int main()
 		return -1;
 	}
 
+
 	// run kernel
 	cudaError_t cudaStatus;
 	if ((cudaStatus = runKernel(m, a, v, pos)) != cudaSuccess) {
@@ -198,6 +220,7 @@ int main()
 			cudaStatus,
 			cudaGetErrorString(cudaStatus));
 	}
+
 	printf("%lf", pos[9999]);
 	// write results
 	char writeFileX[] = "./cuda_x.double";
@@ -206,6 +229,7 @@ int main()
 	writeDouble(writeFileY, pos + N, N);
 	char writeFileZ[] = "./cuda_z.double";
 	writeDouble(writeFileZ, pos + N * 2, N);
+
 
 	// free memory
 	free(m);
@@ -217,7 +241,7 @@ int main()
 }
 
 
-__global__ void kernelGravity(double* m, double* a, double* v, double* pos) {
+__global__ void kernelGravity(double* m, double* a, double* v, double* pos, double* result) {
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	if (i >= N) {
 		return;
@@ -246,10 +270,8 @@ __global__ void kernelGravity(double* m, double* a, double* v, double* pos) {
 		}
 	}
 
-	__syncthreads();
-
-	pos[i] += DT * v[i];
-	pos[i + N] += DT * v[i + N];
-	pos[i + N * 2] += DT * v[i + N * 2];
+	result[i] = pos[i] + DT * v[i];
+	result[i + N] = pos[i + N] + DT * v[i + N];
+	result[i + N * 2] = pos[i + N * 2] + DT * v[i + N * 2];
 
 }
