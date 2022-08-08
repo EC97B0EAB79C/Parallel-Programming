@@ -97,8 +97,6 @@ int main()
 	// cudaMemcpy
 	size = sizeof(double) * N;
 	cudaMemcpy(d_m, m, size, cudaMemcpyHostToDevice);
-	size = sizeof(double) * N * N * 3;
-	cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
 	size = sizeof(double) * N * 3;
 	cudaMemcpy(d_v, v, size, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_pos, pos, size, cudaMemcpyHostToDevice);

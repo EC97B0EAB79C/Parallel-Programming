@@ -1,7 +1,5 @@
 ﻿/*
 CUDA code for calculating using CUDA thread blocks and CUDA threads
-TODO:
-	Implement Block syncronization
 */
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -81,13 +79,6 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 	// cudaMemcpy
 	size = sizeof(double) * N;
 	cudaStatus = cudaMemcpy(d_m, m, size, cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "Err: cudaMemcpy\n");
-		goto Error;
-	}
-
-	size = sizeof(double) * N * N * 3;
-	cudaStatus = cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "Err: cudaMemcpy\n");
 		goto Error;

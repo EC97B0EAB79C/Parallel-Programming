@@ -1,7 +1,6 @@
 ﻿/*
 CUDA code for calculating using CUDA thread blocks and CUDA threads
-TODO:
-	Implement Block syncronization
+
 */
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -19,6 +18,8 @@ TODO:
 
 __global__ void kernelAcceleration(double*, double*, double*, double*, double*);
 __global__ void kernelVelocity(double*, double*, double*, double*, double*);
+__global__ void kernelPosition(double*, double*, double*, double*, double*);
+
 
 cudaError runKernel(double* m, double* a, double* v, double* pos) {
 	cudaError_t cudaStatus;
@@ -87,13 +88,6 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 		goto Error;
 	}
 
-	size = sizeof(double) * N * N * 3;
-	cudaStatus = cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "Err: cudaMemcpy\n");
-		goto Error;
-	}
-
 	size = sizeof(double) * N * 3;
 	cudaStatus = cudaMemcpy(d_v, v, size, cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
@@ -117,20 +111,33 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 		blockDim = dim3(16, 16);
 		gridDim = dim3((N + (blockDim.x - 1)) / blockDim.x, (N + (blockDim.y - 1)) / blockDim.y);
 		kernelAcceleration << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
+		/*
 		cudaStatus = cudaDeviceSynchronize();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "Err: %dth iter Kernel\n", i);
 			goto Error;
 		}
+		*/
 
 		blockDim = dim3(256);
 		gridDim = dim3((N + (blockDim.x - 1)) / blockDim.x);
 		kernelVelocity << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
+		/*
 		cudaStatus = cudaDeviceSynchronize();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "Err: %dth iter Kernel\n", i);
 			goto Error;
 		}
+		*/
+
+		kernelPosition << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
+		/*
+		cudaStatus = cudaDeviceSynchronize();
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "Err: %dth iter Kernel\n", i);
+			goto Error;
+		}
+		*/
 
 		cudaStatus = cudaMemcpy(d_pos, d_result, size, cudaMemcpyDeviceToDevice);
 		if (cudaStatus != cudaSuccess) {
@@ -287,6 +294,13 @@ __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, dou
 			v[i + N] += DT * a[i * N + j + N * N];
 			v[i + N * 2] += DT * a[i * N + j + N * N * 2];
 		}
+	}
+}
+
+__global__ void kernelPosition(double* m, double* a, double* v, double* pos, double* result) {
+	int i = blockDim.x * blockIdx.x + threadIdx.x;
+	if (i >= N) {
+		return;
 	}
 
 	result[i] = pos[i] + DT * v[i];
