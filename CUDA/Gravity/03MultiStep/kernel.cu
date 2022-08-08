@@ -1,6 +1,6 @@
 ﻿/*
 CUDA code for calculating using CUDA thread blocks and CUDA threads
-
+	Divide kernel in steps of Acceleration, Velocity, Position
 */
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
