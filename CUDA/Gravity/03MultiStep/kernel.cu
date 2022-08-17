@@ -22,6 +22,14 @@ __global__ void kernelPosition(double*, double*, double*, double*, double*);
 
 
 cudaError runKernel(double* m, double* a, double* v, double* pos) {
+
+
+	dim3 blockDim;
+	dim3 gridDim;
+	float milisecondsStoM = 0;
+	float milisecondsStoE = 0;
+
+
 	cudaError_t cudaStatus;
 	cudaStatus = cudaSetDevice(0);
 	if (cudaStatus != cudaSuccess) {
@@ -99,14 +107,12 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "Err: cudaMemcpy\n");
 		goto Error;
-	}
+
 	// record event
 	cudaEventRecord(memcpy);
 
 
 	// launch kernel
-	dim3 blockDim;
-	dim3 gridDim;
 	for (int i = 0; i < 10; i++) {
 		blockDim = dim3(16, 16);
 		gridDim = dim3((N + (blockDim.x - 1)) / blockDim.x, (N + (blockDim.y - 1)) / blockDim.y);
@@ -158,10 +164,8 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 	cudaDeviceSynchronize();
 
 	// print performace metrics
-	float milisecondsStoM = 0;
 	cudaEventElapsedTime(&milisecondsStoM, start, memcpy);
 	fprintf(stdout, "Time from start to memcpy:\n\t%f\n", milisecondsStoM);
-	float milisecondsStoE = 0;
 	cudaEventElapsedTime(&milisecondsStoE, start, end);
 	fprintf(stdout, "Time from start to end:\n\t%f\n", milisecondsStoE);
 
@@ -179,8 +183,7 @@ Error:
 }
 
 
-int main()
-{
+int main() {
 	size_t size;
 
 
@@ -201,14 +204,14 @@ int main()
 		v == NULL ||
 		pos == NULL
 		) {
-		fprintf(stderr, "Err: Malloc Failed");
+		fprintf(stderr, "Err: Malloc Failed\n");
 		return -1;
 	}
 
 
 	// set variable
 	if (readDouble("../data_util/test/n10000/m.double", m) != N) {
-		fprintf(stderr, "Err: Can not read m.double");
+		fprintf(stderr, "Err: Can not read m.double\n");
 		return -1;
 	}
 
@@ -219,15 +222,15 @@ int main()
 	memset(v, 0, size);
 
 	if (readDouble("../data_util/test/n10000/x.double", pos) != N) {
-		fprintf(stderr, "Err: Can not read x.double");
+		fprintf(stderr, "Err: Can not read x.double\n");
 		return -1;
 	}
 	if (readDouble("../data_util/test/n10000/y.double", pos + N) != N) {
-		fprintf(stderr, "Err: Can not read y.double");
+		fprintf(stderr, "Err: Can not read y.double\n");
 		return -1;
 	}
 	if (readDouble("../data_util/test/n10000/z.double", pos + N * 2) != N) {
-		fprintf(stderr, "Err: Can not read z.double");
+		fprintf(stderr, "Err: Can not read z.double\n");
 		return -1;
 	}
 

@@ -37,13 +37,13 @@ int main()
 		v == NULL ||
 		pos == NULL
 		) {
-		fprintf(stderr, "Err: Malloc Failed");
+		fprintf(stderr, "Err: Malloc Failed\n");
 		return -1;
 	}
 
 	// set variable
 	if (readDouble("../data_util/test/n1000/m.double", m) != N) {
-		fprintf(stderr, "Err: Can not read m.double");
+		fprintf(stderr, "Err: Can not read m.double\n");
 		return -1;
 	}
 
@@ -54,15 +54,15 @@ int main()
 	memset(v, 0, size);
 
 	if (readDouble("../data_util/test/n1000/x.double", pos) != N) {
-		fprintf(stderr, "Err: Can not read x.double");
+		fprintf(stderr, "Err: Can not read x.double\n");
 		return -1;
 	}
 	if (readDouble("../data_util/test/n1000/y.double", pos + N) != N) {
-		fprintf(stderr, "Err: Can not read y.double");
+		fprintf(stderr, "Err: Can not read y.double\n");
 		return -1;
 	}
 	if (readDouble("../data_util/test/n1000/z.double", pos + N * 2) != N) {
-		fprintf(stderr, "Err: Can not read z.double");
+		fprintf(stderr, "Err: Can not read z.double\n");
 		return -1;
 	}
 
