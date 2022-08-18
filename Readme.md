@@ -5,9 +5,9 @@ This repository is a collection of codes written for studying and practicing par
 ## Parallel Methods
 These are Library/APIs used
 
-1. OpenMP (Open Multi-Processing)
-1. MPI (Message Passing Interface)
-1. CUDA
+1. [OpenMP (Open Multi-Processing)](./OpenMP)
+1. [Hybrid (OpenMP + Message Passing Interface)](./Hybrid)
+1. [CUDA](./CUDA/Gravity)
 
 ## Disclaimer
 **Please do not use programs in this repository *as-is* for purposes like assignments.**
