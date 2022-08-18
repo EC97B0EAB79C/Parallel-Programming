@@ -1,6 +1,10 @@
 ﻿/*
 CUDA code for calculating using CUDA thread blocks and CUDA threads
 	Divide kernel in steps of Acceleration, Velocity, Position
+	Additional parallelization on XYZ 
+TODO:
+	XYZ parallelization
+		runKernel
 */
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -114,7 +118,7 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 
 	// launch kernel
 	for (int i = 0; i < 10; i++) {
-		blockDim = dim3(16, 16);
+		blockDim = dim3(64, 2);
 		gridDim = dim3((N + (blockDim.x - 1)) / blockDim.x, (N + (blockDim.y - 1)) / blockDim.y);
 		kernelAcceleration << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
 		/*
@@ -125,7 +129,7 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 		}
 		*/
 
-		blockDim = dim3(256);
+		blockDim = dim3(64, 1, 3);
 		gridDim = dim3((N + (blockDim.x - 1)) / blockDim.x);
 		kernelVelocity << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
 		/*
@@ -243,7 +247,6 @@ int main() {
 			cudaGetErrorString(cudaStatus));
 	}
 
-	//printf("%lf", pos[9999]);
 	// write results
 	char writeFileX[] = "./cuda_x.double";
 	writeDouble(writeFileX, pos, N);
@@ -265,6 +268,7 @@ int main() {
 __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos, double* result) {
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	int j = blockDim.y * blockIdx.y + threadIdx.y;
+//	int k = threadIdx.z;
 	if (i >= N || j >= N) {
 		return;
 	}
@@ -277,6 +281,11 @@ __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos,
 		+ (pos[i + N] - pos[j + N]) * (pos[i + N] - pos[j + N])
 		+ (pos[i + N * 2] - pos[j + N * 2]) * (pos[i + N * 2] - pos[j + N * 2]);
 	r = sqrt(r_sqr);
+	
+/*
+	a[i * N + j + N * N * k]
+		= G * (m[j]) / (r_sqr) * (pos[j + N * k] - pos[i + N * k]) / r;
+*/
 	a[i * N + j]
 		= G * (m[j]) / (r_sqr) * (pos[j] - pos[i]) / r;
 	a[i * N + j + N * N]
@@ -287,26 +296,35 @@ __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos,
 
 __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, double* result) {
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
+	int k = threadIdx.z;
 	if (i >= N) {
 		return;
 	}
 
 	for (int j = 0; j < N; j++) {
 		if (i != j) {
+
+			v[i + N * k] += DT * a[i * N + j + N * N * k];
+/*
 			v[i] += DT * a[i * N + j];
 			v[i + N] += DT * a[i * N + j + N * N];
 			v[i + N * 2] += DT * a[i * N + j + N * N * 2];
+*/
 		}
 	}
 }
 
 __global__ void kernelPosition(double* m, double* a, double* v, double* pos, double* result) {
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
+	int k = threadIdx.z;
 	if (i >= N) {
 		return;
 	}
 
+	result[i + N * k] = pos[i + N * k] + DT * v[i + N * k];
+/*
 	result[i] = pos[i] + DT * v[i];
 	result[i + N] = pos[i + N] + DT * v[i + N];
 	result[i + N * 2] = pos[i + N * 2] + DT * v[i + N * 2];
+*/
 }

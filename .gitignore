@@ -1,5 +1,6 @@
 # Test Files
 CUDA/Gravity/data_util/test*
+CUDA/Gravity/test*
 data_util_bin.c
 *.double
 

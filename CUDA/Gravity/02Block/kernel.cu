@@ -183,7 +183,7 @@ int main()
 
 
 	// set variable
-	if (readDouble("../data_util/test/n10000/m.double", m) != N) {
+	if (readDouble("../test/n10000/m.double", m) != N) {
 		fprintf(stderr, "Err: Can not read m.double\n");
 		return -1;
 	}
@@ -194,15 +194,15 @@ int main()
 	size = sizeof(double) * N * 3;
 	memset(v, 0, size);
 
-	if (readDouble("../data_util/test/n10000/x.double", pos) != N) {
+	if (readDouble("../test/n10000/x.double", pos) != N) {
 		fprintf(stderr, "Err: Can not read x.double\n");
 		return -1;
 	}
-	if (readDouble("../data_util/test/n10000/y.double", pos + N) != N) {
+	if (readDouble("../test/n10000/y.double", pos + N) != N) {
 		fprintf(stderr, "Err: Can not read y.double\n");
 		return -1;
 	}
-	if (readDouble("../data_util/test/n10000/z.double", pos + N * 2) != N) {
+	if (readDouble("../test/n10000/z.double", pos + N * 2) != N) {
 		fprintf(stderr, "Err: Can not read z.double\n");
 		return -1;
 	}
@@ -216,7 +216,7 @@ int main()
 			cudaGetErrorString(cudaStatus));
 	}
 
-	printf("%lf", pos[9999]);
+	//printf("%lf", pos[9999]);
 	// write results
 	char writeFileX[] = "./cuda_x.double";
 	writeDouble(writeFileX, pos, N);
