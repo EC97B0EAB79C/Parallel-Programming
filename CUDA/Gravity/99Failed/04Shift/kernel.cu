@@ -275,14 +275,15 @@ __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos,
 	r_sqr
 		= (pos[i] - pos[j]) * (pos[i] - pos[j])
 		+ (pos[i + N] - pos[j + N]) * (pos[i + N] - pos[j + N])
-		+ (pos[i + N * 2] - pos[j + N * 2]) * (pos[i + N * 2] - pos[j + N * 2]);
+		+ (pos[i + (N << 1)] - pos[j + (N << 1)]) * (pos[i + (N << 1)] - pos[j + (N << 1)]);
 	r = sqrt(r_sqr);
+
 	a[i * N + j]
 		= G * (m[j]) / (r_sqr) * (pos[j] - pos[i]) / r;
 	a[i * N + j + N * N]
 		= G * (m[j]) / (r_sqr) * (pos[j + N] - pos[i + N]) / r;
-	a[i * N + j + N * N * 2]
-		= G * (m[j]) / (r_sqr) * (pos[j + N * 2] - pos[i + N * 2]) / r;
+	a[i * N + j + (N * N << 1)]
+		= G * (m[j]) / (r_sqr) * (pos[j + (N << 1)] - pos[i + (N << 1)]) / r;
 }
 
 __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, double* result) {
@@ -295,7 +296,7 @@ __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, dou
 		if (i != j) {
 			v[i] += DT * a[i * N + j];
 			v[i + N] += DT * a[i * N + j + N * N];
-			v[i + N * 2] += DT * a[i * N + j + N * N * 2];
+			v[i + (N << 1)] += DT * a[i * N + j + (N * N << 1)];
 		}
 	}
 }
@@ -308,5 +309,5 @@ __global__ void kernelPosition(double* m, double* a, double* v, double* pos, dou
 
 	result[i] = pos[i] + DT * v[i];
 	result[i + N] = pos[i + N] + DT * v[i + N];
-	result[i + N * 2] = pos[i + N * 2] + DT * v[i + N * 2];
+	result[i + (N << 1)] = pos[i + (N << 1)] + DT * v[i + (N << 1)];
 }
