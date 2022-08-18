@@ -118,32 +118,32 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 		gridDim = dim3((N + (blockDim.x - 1)) / blockDim.x, (N + (blockDim.y - 1)) / blockDim.y);
 		kernelAcceleration << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
 		/*
+		*/
 		cudaStatus = cudaDeviceSynchronize();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "Err: %dth iter Kernel\n", i);
 			goto Error;
 		}
-		*/
 
 		blockDim = dim3(256);
 		gridDim = dim3((N + (blockDim.x - 1)) / blockDim.x);
 		kernelVelocity << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
 		/*
+		*/
 		cudaStatus = cudaDeviceSynchronize();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "Err: %dth iter Kernel\n", i);
 			goto Error;
 		}
-		*/
 
 		kernelPosition << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
 		/*
+		*/
 		cudaStatus = cudaDeviceSynchronize();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "Err: %dth iter Kernel\n", i);
 			goto Error;
 		}
-		*/
 
 		cudaStatus = cudaMemcpy(d_pos, d_result, size, cudaMemcpyDeviceToDevice);
 		if (cudaStatus != cudaSuccess) {
@@ -270,19 +270,20 @@ __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos,
 	}
 
 	double r_sqr;
-	double r;
+	double r3;
 
 	r_sqr
 		= (pos[i] - pos[j]) * (pos[i] - pos[j])
 		+ (pos[i + N] - pos[j + N]) * (pos[i + N] - pos[j + N])
 		+ (pos[i + N * 2] - pos[j + N * 2]) * (pos[i + N * 2] - pos[j + N * 2]);
-	r = sqrt(r_sqr);
+	r3 = sqrt(r_sqr) * r_sqr;
+	if(r3==0) return;
 	a[i * N + j]
-		= G * (m[j]) / (r_sqr) * (pos[j] - pos[i]) / r;
+		= G * (m[j]) * (pos[j] - pos[i]) / r3;
 	a[i * N + j + N * N]
-		= G * (m[j]) / (r_sqr) * (pos[j + N] - pos[i + N]) / r;
+		= G * (m[j]) * (pos[j + N] - pos[i + N]) / r3;
 	a[i * N + j + N * N * 2]
-		= G * (m[j]) / (r_sqr) * (pos[j + N * 2] - pos[i + N * 2]) / r;
+		= G * (m[j]) * (pos[j + N * 2] - pos[i + N * 2]) / r3;
 }
 
 __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, double* result) {
@@ -292,11 +293,9 @@ __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, dou
 	}
 
 	for (int j = 0; j < N; j++) {
-		if (i != j) {
-			v[i] += DT * a[i * N + j];
-			v[i + N] += DT * a[i * N + j + N * N];
-			v[i + N * 2] += DT * a[i * N + j + N * N * 2];
-		}
+		v[i] += DT * a[i * N + j];
+		v[i + N] += DT * a[i * N + j + N * N];
+		v[i + N * 2] += DT * a[i * N + j + N * N * 2];
 	}
 }
 
