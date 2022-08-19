@@ -1,9 +1,6 @@
 ﻿/*
-CUDA code for making improvements by optimizing instructions
-
-TODO:
-	Compare initializing vs calculating: N2, NN, NN2
-	Check N2, NN, NN2 variables
+CUDA code for calculating using CUDA thread blocks and CUDA threads
+	Divide kernel in steps of Acceleration, Velocity, Position
 */
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -22,11 +19,7 @@ TODO:
 __global__ void kernelAcceleration(double*, double*, double*, double*, double*);
 __global__ void kernelVelocity(double*, double*, double*, double*, double*);
 __global__ void kernelPosition(double*, double*, double*, double*, double*);
-__global__ void kernelInit();
 
-__device__ int N2;
-__device__ int NN;
-__device__ int NN2;
 
 cudaError runKernel(double* m, double* a, double* v, double* pos) {
 
@@ -35,7 +28,7 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 	dim3 gridDim;
 	float milisecondsStoM = 0;
 	float milisecondsStoE = 0;
-	int temp;
+
 
 	cudaError_t cudaStatus;
 	cudaStatus = cudaSetDevice(0);
@@ -94,6 +87,7 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 	cudaEventCreate(&end);
 	cudaEventRecord(start);	// record event
 
+
 	// cudaMemcpy
 	size = sizeof(double) * N;
 	cudaStatus = cudaMemcpy(d_m, m, size, cudaMemcpyHostToDevice);
@@ -119,38 +113,37 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 
 
 	// launch kernel
-	kernelInit<<<1, 1>>>();
 	for (int i = 0; i < 10; i++) {
 		blockDim = dim3(16, 16);
 		gridDim = dim3((N + (blockDim.x - 1)) / blockDim.x, (N + (blockDim.y - 1)) / blockDim.y);
-		kernelAcceleration <<<gridDim, blockDim>>> (d_m, d_a, d_v, d_pos, d_result);
+		kernelAcceleration << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
 		/*
+		*/
 		cudaStatus = cudaDeviceSynchronize();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "Err: %dth iter Kernel\n", i);
 			goto Error;
 		}
-		*/
 
 		blockDim = dim3(256);
 		gridDim = dim3((N + (blockDim.x - 1)) / blockDim.x);
-		kernelVelocity <<<gridDim, blockDim >>> (d_m, d_a, d_v, d_pos, d_result);
+		kernelVelocity << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
 		/*
+		*/
 		cudaStatus = cudaDeviceSynchronize();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "Err: %dth iter Kernel\n", i);
 			goto Error;
 		}
-		*/
 
-		kernelPosition <<<gridDim, blockDim >>> (d_m, d_a, d_v, d_pos, d_result);
+		kernelPosition << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
 		/*
+		*/
 		cudaStatus = cudaDeviceSynchronize();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "Err: %dth iter Kernel\n", i);
 			goto Error;
 		}
-		*/
 
 		cudaStatus = cudaMemcpy(d_pos, d_result, size, cudaMemcpyDeviceToDevice);
 		if (cudaStatus != cudaSuccess) {
@@ -278,19 +271,19 @@ __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos,
 
 	double r_sqr;
 	double r3;
-	
+
 	r_sqr
 		= (pos[i] - pos[j]) * (pos[i] - pos[j])
 		+ (pos[i + N] - pos[j + N]) * (pos[i + N] - pos[j + N])
-		+ (pos[i + N2] - pos[j + N2]) * (pos[i + N2] - pos[j + N2]);
+		+ (pos[i + N * 2] - pos[j + N * 2]) * (pos[i + N * 2] - pos[j + N * 2]);
 	r3 = sqrt(r_sqr) * r_sqr;
 	if(r3==0) return;
 	a[i * N + j]
 		= G * (m[j]) * (pos[j] - pos[i]) / r3;
-	a[i * N + j + NN]
+	a[i * N + j + N * N]
 		= G * (m[j]) * (pos[j + N] - pos[i + N]) / r3;
-	a[i * N + j + NN2]
-		= G * (m[j]) * (pos[j + N2] - pos[i + N2]) / r3;
+	a[i * N + j + N * N * 2]
+		= G * (m[j]) * (pos[j + N * 2] - pos[i + N * 2]) / r3;
 }
 
 __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, double* result) {
@@ -301,8 +294,8 @@ __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, dou
 
 	for (int j = 0; j < N; j++) {
 		v[i] += DT * a[i * N + j];
-		v[i + N] += DT * a[i * N + j + NN];
-		v[i + N2] += DT * a[i * N + j + NN2];
+		v[i + N] += DT * a[i * N + j + N * N];
+		v[i + N * 2] += DT * a[i * N + j + N * N * 2];
 	}
 }
 
@@ -314,11 +307,5 @@ __global__ void kernelPosition(double* m, double* a, double* v, double* pos, dou
 
 	result[i] = pos[i] + DT * v[i];
 	result[i + N] = pos[i + N] + DT * v[i + N];
-	result[i + N2] = pos[i + N2] + DT * v[i + N2];
-}
-
-__global__ void kernelInit(){
-	N2 = N << 1;
-	NN = N * N;
-	NN2 = NN << 1;
+	result[i + N * 2] = pos[i + N * 2] + DT * v[i + N * 2];
 }

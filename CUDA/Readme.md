@@ -7,7 +7,7 @@ These are improvements made to improve the performance.
 1. [Thread](./Gravity/01Thread/kernel.cu): Begin parallelization with CUDA threads.
 1. [Block](./Gravity/02Block/kernel.cu): Increase parallelization by including CUDA thread blocks.
 1. [MultiStep](./Gravity/03MultiStep/kernel.cu): Divide kernel code into multi-steps to change the degree of parallelization according to calculation.
-1. [Instruction](CUDA/Gravity/04Instruction/kernel.cu): Optimize instructions to increase performance.
+1. [Instruction](./Gravity/04Instruction/kernel.cu): Optimize instructions to increase performance.
 
 ## Failed Attempts
 List of failed attempts for increasing performance. 
