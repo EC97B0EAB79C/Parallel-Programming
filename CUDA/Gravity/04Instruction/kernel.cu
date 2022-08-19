@@ -1,6 +1,5 @@
 ﻿/*
-CUDA code for calculating using CUDA thread blocks and CUDA threads
-	Divide kernel in steps of Acceleration, Velocity, Position
+CUDA code for making improvements by optimizing instructions
 */
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -265,25 +264,27 @@ int main() {
 __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos, double* result) {
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 	int j = blockDim.y * blockIdx.y + threadIdx.y;
-	if (i >= N || j >= N) {
+	if (i >= N || j >= N || i == j) {
 		return;
 	}
 
 	double r_sqr;
 	double r3;
+	double k;
 
 	r_sqr
 		= (pos[i] - pos[j]) * (pos[i] - pos[j])
 		+ (pos[i + N] - pos[j + N]) * (pos[i + N] - pos[j + N])
 		+ (pos[i + N * 2] - pos[j + N * 2]) * (pos[i + N * 2] - pos[j + N * 2]);
 	r3 = sqrt(r_sqr) * r_sqr;
-	if(r3==0) return;
+	k = G * m[j] / r3;
+
 	a[i * N + j]
-		= G * (m[j]) * (pos[j] - pos[i]) / r3;
+		= k * (pos[j] - pos[i]);
 	a[i * N + j + N * N]
-		= G * (m[j]) * (pos[j + N] - pos[i + N]) / r3;
+		= k * (pos[j + N] - pos[i + N]);
 	a[i * N + j + N * N * 2]
-		= G * (m[j]) * (pos[j + N * 2] - pos[i + N * 2]) / r3;
+		= k * (pos[j + N * 2] - pos[i + N * 2]);
 }
 
 __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, double* result) {
@@ -291,6 +292,12 @@ __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, dou
 	if (i >= N) {
 		return;
 	}
+
+/*	cuda data initilization no need?	
+	a[i*N+i] = 0;
+	a[i*N+i+N*N] = 0;
+	a[i*N+i+N*N*2] = 0;
+*/
 
 	for (int j = 0; j < N; j++) {
 		v[i] += DT * a[i * N + j];
