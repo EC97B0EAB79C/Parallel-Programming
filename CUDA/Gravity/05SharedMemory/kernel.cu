@@ -287,7 +287,7 @@ __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos,
 	double r_sqr;
 	double r3;
 	double k;
-//TODO
+
 	double pos_diff_x = pos_j[t_j] - pos_i[t_i];
 	double pos_diff_y = pos_j[t_j + kABlockDimY] - pos_i[t_i + kABlockDimX];
 	double pos_diff_z = pos_j[t_j + kABlockDimY * 2] - pos_i[t_i + kABlockDimX * 2];
@@ -304,23 +304,6 @@ __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos,
 		= k * pos_diff_y;
 	a[i * N + j + N * N * 2]
 		= k * pos_diff_z;
-/*
-	if((pos_i[t_i] - pos_j[t_j]) != (pos[i] - pos[j])) printf("err");
-	r_sqr	= (pos_i[t_i] - pos_j[t_j]) * (pos[i] - pos[j])
-		+ (pos[i + N] - pos[j + N]) * (pos[i + N] - pos[j + N])
-		+ (pos[i + N * 2] - pos[j + N * 2]) * (pos[i + N * 2] - pos[j + N * 2]);
-	r3 = sqrt(r_sqr) * r_sqr;
-	k = G * m[j] / r3;
-
-	a[i * N + j]
-		= k * (pos[j] - pos[i]);
-	a[i * N + j + N * N]
-		= k * (pos[j + N] - pos[i + N]);
-	a[i * N + j + N * N * 2]
-		= k * (pos[j + N * 2] - pos[i + N * 2]);
-*/
-/*
-*/
 }
 
 __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, double* result) {
@@ -328,12 +311,6 @@ __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, dou
 	if (i >= N) {
 		return;
 	}
-
-/*	cuda data initilization no need?	
-	a[i*N+i] = 0;
-	a[i*N+i+N*N] = 0;
-	a[i*N+i+N*N*2] = 0;
-*/
 
 	for (int j = 0; j < N; j++) {
 		v[i] += DT * a[i * N + j];
