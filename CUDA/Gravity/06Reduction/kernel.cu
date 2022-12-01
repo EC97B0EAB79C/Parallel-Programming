@@ -127,8 +127,8 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 			goto Error;
 		}
 
-		blockDim = dim3(256);
-		gridDim = dim3((N + (blockDim.x - 1)) / blockDim.x);
+		blockDim = dim3(32,2);
+		gridDim = dim3((N + blockDim.y - 1) / blockDim.y);
 		kernelVelocity << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
 		/*
 		*/
@@ -307,15 +307,32 @@ __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos,
 }
 
 __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, double* result) {
-	int i = blockDim.x * blockIdx.x + threadIdx.x;
-	if (i >= N) {
+	int idx = threadIdx.x;
+	int i = blockDim.y * blockIdx.x + threadIdx.y;
+	if(i >= N){
 		return;
 	}
 
-	for (int j = 0; j < N; j++) {
-		v[i] += DT * a[i * N + j];
-		v[i + N] += DT * a[i * N + j + N * N];
-		v[i + N * 2] += DT * a[i * N + j + N * N * 2];
+//TODO
+	double vx=0;
+	double vy=0;
+	double vz=0;
+	
+	for(int j = idx; j < N; j += 32) {
+		vx += DT * a[i * N + j];
+		vy += DT * a[i * N + j + N * N];
+		vz += DT * a[i * N + j + N * N * 2];
+	}
+
+	for(int j = 16; j > 0; j /= 2){
+		vx += __shfl_down_sync(0xffffffff, vx, j, j * 2);
+		vy += __shfl_down_sync(0xffffffff, vy, j, j * 2);
+		vz += __shfl_down_sync(0xffffffff, vz, j, j * 2);
+	}
+	if(idx == 0){
+		v[i] += vx;
+		v[i + N] += vy;
+		v[i + N * 2] += vz;
 	}
 }
 
