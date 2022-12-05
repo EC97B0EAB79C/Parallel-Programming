@@ -18,9 +18,11 @@ CUDA code for making improvements by utilizing Shared memory
 #define kABlockDimX 16
 #define kABlockDimY 16
 
+#define kVBlockDimX 32
+#define kVBlockDimY 2
+
 __global__ void kernelAcceleration(double*, double*, double*, double*, double*);
 __global__ void kernelVelocity(double*, double*, double*, double*, double*);
-__global__ void kernelPosition(double*, double*, double*, double*, double*);
 
 
 cudaError runKernel(double* m, double* a, double* v, double* pos) {
@@ -119,35 +121,16 @@ cudaError runKernel(double* m, double* a, double* v, double* pos) {
 		blockDim = dim3(kABlockDimX, kABlockDimY);
 		gridDim = dim3((N + (blockDim.x - 1)) / blockDim.x, (N + (blockDim.y - 1)) / blockDim.y);
 		kernelAcceleration << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
-		/*
-		*/
 		cudaStatus = cudaDeviceSynchronize();
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "Err: %dth iter Kernel\n", i);
 			goto Error;
 		}
 
-		blockDim = dim3(32,2);
+		blockDim = dim3(kVBlockDimX, kVBlockDimY);
 		gridDim = dim3((N + blockDim.y - 1) / blockDim.y);
 		kernelVelocity << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
-		/*
-		*/
 		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "Err: %dth iter Kernel\n", i);
-			goto Error;
-		}
-
-		kernelPosition << <gridDim, blockDim >> > (d_m, d_a, d_v, d_pos, d_result);
-		/*
-		*/
-		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "Err: %dth iter Kernel\n", i);
-			goto Error;
-		}
-
-		cudaStatus = cudaMemcpy(d_pos, d_result, size, cudaMemcpyDeviceToDevice);
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "Err: %dth iter Kernel\n", i);
 			goto Error;
@@ -314,35 +297,29 @@ __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, dou
 	}
 
 //TODO
-	double vx=0;
-	double vy=0;
-	double vz=0;
+	double vx = 0;
+	double vy = 0;
+	double vz = 0;
 	
 	for(int j = idx; j < N; j += 32) {
 		vx += DT * a[i * N + j];
 		vy += DT * a[i * N + j + N * N];
 		vz += DT * a[i * N + j + N * N * 2];
 	}
-
+	
 	for(int j = 16; j > 0; j /= 2){
-		vx += __shfl_down_sync(0xffffffff, vx, j, j * 2);
-		vy += __shfl_down_sync(0xffffffff, vy, j, j * 2);
-		vz += __shfl_down_sync(0xffffffff, vz, j, j * 2);
+		vx += __shfl_down_sync(0xffffffffffffffff, vx, j);
+		vy += __shfl_down_sync(0xffffffffffffffff, vy, j);
+		vz += __shfl_down_sync(0xffffffffffffffff, vz, j);
 	}
+
 	if(idx == 0){
 		v[i] += vx;
 		v[i + N] += vy;
 		v[i + N * 2] += vz;
-	}
-}
 
-__global__ void kernelPosition(double* m, double* a, double* v, double* pos, double* result) {
-	int i = blockDim.x * blockIdx.x + threadIdx.x;
-	if (i >= N) {
-		return;
+		pos[i] += DT * v[i];
+		pos[i + N] += DT * v[i + N];
+		pos[i + N * 2] += DT * v[i + N * 2];
 	}
-
-	result[i] = pos[i] + DT * v[i];
-	result[i + N] = pos[i + N] + DT * v[i + N];
-	result[i + N * 2] = pos[i + N * 2] + DT * v[i + N * 2];
 }
