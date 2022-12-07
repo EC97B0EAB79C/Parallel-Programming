@@ -247,40 +247,76 @@ int main() {
 	return 0;
 }
 
+// kernelAcceleration is a CUDA kernel that calculates the acceleration of each particle in the system.
+// It takes the following arguments:
+//   - m: an array of masses for each particle in the system
+//   - a: an array of accelerations for each particle in the system
+//   - v: an array of velocities for each particle in the system
+//   - pos: an array of positions for each particle in the system
+//   - result: an array where the results will be stored
 __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos, double* result) {
+	// t_i and t_j are the indices of the current thread within its thread block
 	int t_i = threadIdx.x;
 	int t_j = threadIdx.y;
+	// i and j are the global indices of the current thread
+	// This is calculated by combining the thread block indices and the thread indices
 	int i = blockDim.x * blockIdx.x + t_i;
 	int j = blockDim.y * blockIdx.y + t_j;
+
+	// If the global indices are out of bounds, return early
 	if (i >= N || j >= N) return;
 
+	// pos_i and pos_j are shared memory arrays used to store the positions of the current particle
+	// and the particle that the current thread is interacting with, respectively.
+	// They are declared with dimensions kABlockDimX * 3 and kABlockDimY * 3, respectively,
+	// where kABlockDimX and kABlockDimY are constants that specify the dimensions of the thread block.
 	__shared__ double pos_i[kABlockDimX * 3];
 	__shared__ double pos_j[kABlockDimY * 3];
 	
+	// The positions of the current particle are copied from the global pos array into shared memory.
+	// The positions are stored in separate elements for the x, y, and z coordinates.
 	if(t_j < 3){
 		pos_i[t_i + kABlockDimX * t_j] = pos[i + N * t_j];
 	}
+	// The positions of the particle that the current thread is interacting with are copied
+	// from the global pos array into shared memory.
+	// The positions are stored in separate elements for the x, y, and z 
 	if(t_i < 3){
 		pos_j[t_j + kABlockDimY * t_i] = pos[j + N * t_i];
 	}
+	// Wait for all threads to finish copying their positions into shared memory
 	__syncthreads();
 
+	// If the current thread is interacting with itself, return early
 	if(i == j) return;
 
+	// r_sqr is the square of the distance between the current particle and the particle
+	// that the current thread is interacting with
 	double r_sqr;
+	// r3 is the cube of the distance between the current particle and the particle
+  	// that the current thread is interacting with
 	double r3;
+	// k is a constant that is used in the calculation of the acceleration
 	double k;
 
+	// Calculate the difference between the x, y, and z coordinates of the positions
+	// of the current particle and the particle that the current thread is interacting with
 	double pos_diff_x = pos_j[t_j] - pos_i[t_i];
 	double pos_diff_y = pos_j[t_j + kABlockDimY] - pos_i[t_i + kABlockDimX];
 	double pos_diff_z = pos_j[t_j + kABlockDimY * 2] - pos_i[t_i + kABlockDimX * 2];
 
+	// Calculate the square of the distance between the current particle and the particle
+	// that the current thread is interacting with using the position differences
 	r_sqr = pos_diff_x * pos_diff_x
 		+ pos_diff_y * pos_diff_y
-		+ pos_diff_z * pos_diff_z; 
+		+ pos_diff_z * pos_diff_z;
+	// Calculate the cube of the distance between the particles
 	r3 = sqrt(r_sqr) * r_sqr;
+	// Calculate the constant k that is used in the calculation of the acceleration
 	k = G * m[j] / r3;
 
+	// Calculate the x, y, and z components of the acceleration of the current particle
+	// due to the jth particle and store them in the global a array
 	a[i * N + j]
 		= k * pos_diff_x;
 	a[i * N + j + N * N]
@@ -289,30 +325,46 @@ __global__ void kernelAcceleration(double* m, double* a, double* v, double* pos,
 		= k * pos_diff_z;
 }
 
+// kernelVelocity is a CUDA kernel that updates the velocities and positions of the particles
+// in the system based on their accelerations.
 __global__ void kernelVelocity(double* m, double* a, double* v, double* pos, double* result) {
+	// idx is the index of the current thread within its thread block
 	int idx = threadIdx.x;
+	// i is the global index of the current thread
+	// This is calculated by combining the thread block indices and the thread indices
 	int i = blockDim.y * blockIdx.x + threadIdx.y;
+
+	// If the global index is out of bounds, return early
 	if(i >= N){
 		return;
 	}
 
-//TODO
+	// vx, vy, and vz are the x, y, and z components of the velocity of the current particle
+	// They are initially set to 0
 	double vx = 0;
 	double vy = 0;
 	double vz = 0;
 	
+	// Loop over all particles in the system
 	for(int j = idx; j < N; j += 32) {
+		// Add the x, y, and z components of the acceleration of the current particle
+		// due to the jth particle to the corresponding velocity components
 		vx += DT * a[i * N + j];
 		vy += DT * a[i * N + j + N * N];
 		vz += DT * a[i * N + j + N * N * 2];
 	}
-	
-	for(int j = 16; j > 0; j /= 2){
+
+	// Perform a reduction on the velocity components to obtain the final values
+	for(int j = 16; j > 0; j /= 2) {
+		// Add the value of the velocity component of the thread j threads down in the thread block
+		// to the current thread's velocity component
 		vx += __shfl_down_sync(0xffffffffffffffff, vx, j);
 		vy += __shfl_down_sync(0xffffffffffffffff, vy, j);
 		vz += __shfl_down_sync(0xffffffffffffffff, vz, j);
 	}
 
+	// If the current thread is the first thread in the thread block, update the global
+	// velocity and position arrays with the final velocity and position values for the current particle.
 	if(idx == 0){
 		v[i] += vx;
 		v[i + N] += vy;
