@@ -1,0 +1,3 @@
+[submodule "CUDA"]
+	path = CUDA
+	url = git@github.com:EC97B0EAB79C/CUDA-Optimize.git
